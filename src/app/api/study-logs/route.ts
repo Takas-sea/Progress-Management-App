@@ -1,6 +1,23 @@
 import { supabase } from "../../../lib/supabase";
 import { NextResponse } from "next/server";
 
+export async function GET() {
+  const { data, error } = await supabase
+    .from("study_logs")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    return new Response(JSON.stringify({ error }), { status: 500 });
+  }
+
+  return new Response(JSON.stringify(data), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+
 export async function POST(req: Request) {
   const body = await req.json();
 
