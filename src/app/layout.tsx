@@ -27,7 +27,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 text-gray-900`}
       >
-        <main style={{ maxWidth: "800px", margin: "0 auto" }}>
+        <main style={{ maxWidth: "2000px", margin: "0 auto" }}>
           {children}
         </main>
       </body>
