@@ -1,0 +1,22 @@
+name: Deploy to Vercel
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install Vercel CLI
+      run: npm install --global vercel@latest
+    
+    - name: Deploy to Vercel
+      run: vercel --prod --token ${{ secrets.VERCEL_TOKEN }}
+      continue-on-error: true
+
+# Note: Vercel CLIトークンが必要です
+# GitHub Settings → Secrets → VERCEL_TOKEN を設定してください

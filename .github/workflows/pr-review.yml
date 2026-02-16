@@ -1,0 +1,35 @@
+name: Automated Code Review
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    
+    - name: Use Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run lint
+      run: npm run lint
+    
+    - name: Build check
+      run: npm run build
+      env:
+        NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+    
+    - name: Check file changes
+      run: echo "PR from ${{ github.head_ref }} to ${{ github.base_ref }}"
