@@ -48,13 +48,18 @@ export async function POST(req: Request) {
     const body = await req.json();
 
     // バリデーション追加
-    if (!body.title || !body.minutes || !body.date) {
+    if (!body.title || !body.minutes) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
     if (typeof body.minutes !== "number" || body.minutes <= 0) {
       return NextResponse.json({ error: "Invalid minutes value" }, { status: 400 });
     }
+
+    const now = new Date();
+    const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+      .toISOString()
+      .split('T')[0];
 
     const supabase = await createClient();
 
@@ -82,7 +87,7 @@ export async function POST(req: Request) {
         {
           title: body.title,
           minutes: body.minutes,
-          date: body.date,
+          date: localDate,
           user_id: user.id,
         },
       ])
@@ -91,6 +96,53 @@ export async function POST(req: Request) {
     if (error) {
       console.error("Database error:", error);
       return NextResponse.json({ error: "Database error", details: error.message }, { status: 500 });
+    }
+
+    // マイルストーン達成チェックを自動実行
+    try {
+      // ユーザーの全学習ログを取得して統計を計算
+      const { data: allLogs } = await admin
+        .from("study_logs")
+        .select("minutes, created_at, date")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (allLogs && allLogs.length > 0) {
+        // 総学習時間を計算
+        const totalHours = allLogs.reduce((sum, log) => {
+          const minutes = typeof log.minutes === "number" ? log.minutes : 0;
+          return sum + minutes / 60;
+        }, 0);
+
+        // 連続学習日数を計算（簡易版：過去7日間のログがある日数）
+        const today = new Date();
+        const sevenDaysAgo = new Date(today);
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        
+        const recentDates = new Set(
+          allLogs
+            .filter(log => {
+              const logDate = new Date(log.date || log.created_at);
+              return logDate >= sevenDaysAgo && logDate <= today;
+            })
+            .map(log => (log.date || log.created_at.split('T')[0]))
+        );
+        const currentStreak = recentDates.size;
+
+        // マイルストーンチェックAPIを呼び出し
+        const checkMilestonesUrl = new URL('/api/milestones', req.url);
+        await fetch(checkMilestonesUrl.toString(), {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ currentStreak, totalHours }),
+        });
+      }
+    } catch (milestoneError) {
+      // マイルストーンチェックのエラーはログのみで、学習ログ作成は成功として返す
+      console.error("Milestone check error:", milestoneError);
     }
 
     return NextResponse.json(data);
@@ -143,6 +195,53 @@ export async function DELETE(req: Request) {
 
     if (count === 0) {
       return NextResponse.json({ error: "Log not found" }, { status: 404 });
+    }
+
+    // マイルストーンをリセットして再計算
+    try {
+      await admin
+        .from("milestones")
+        .delete()
+        .eq("user_id", user.id);
+
+      const { data: allLogs } = await admin
+        .from("study_logs")
+        .select("minutes, created_at, date")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (allLogs && allLogs.length > 0) {
+        const totalHours = allLogs.reduce((sum, log) => {
+          const minutes = typeof log.minutes === "number" ? log.minutes : 0;
+          return sum + minutes / 60;
+        }, 0);
+
+        const today = new Date();
+        const sevenDaysAgo = new Date(today);
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        const recentDates = new Set(
+          allLogs
+            .filter(log => {
+              const logDate = new Date(log.date || log.created_at);
+              return logDate >= sevenDaysAgo && logDate <= today;
+            })
+            .map(log => (log.date || log.created_at.split('T')[0]))
+        );
+        const currentStreak = recentDates.size;
+
+        const checkMilestonesUrl = new URL('/api/milestones', req.url);
+        await fetch(checkMilestonesUrl.toString(), {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ currentStreak, totalHours }),
+        });
+      }
+    } catch (milestoneError) {
+      console.error("Milestone reset error:", milestoneError);
     }
 
     return NextResponse.json({ message: "Deleted successfully" });
