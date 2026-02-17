@@ -90,6 +90,20 @@ export const useMilestones = () => {
     loadMilestones();
   }, [loadMilestones]);
 
+  // 学習ログ追加時に自動リロード
+  useEffect(() => {
+    const handleStudyLogCreated = () => {
+      setTimeout(() => {
+        loadMilestones();
+      }, 500); // サーバー側のマイルストーンチェックを待つ
+    };
+
+    window.addEventListener('study-log-created', handleStudyLogCreated);
+    return () => {
+      window.removeEventListener('study-log-created', handleStudyLogCreated);
+    };
+  }, [loadMilestones]);
+
   return {
     achieved,
     pending,

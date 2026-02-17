@@ -3,13 +3,12 @@
 import { useState } from 'react'
 
 interface StudyLogFormProps {
-  onSubmit: (title: string, minutes: number, date: string) => Promise<{ success: boolean; error?: string }>
+  onSubmit: (title: string, minutes: number) => Promise<{ success: boolean; error?: string }>
 }
 
 export const StudyLogForm = ({ onSubmit }: StudyLogFormProps) => {
   const [title, setTitle] = useState('')
   const [minutes, setMinutes] = useState('')
-  const [date, setDate] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -17,12 +16,11 @@ export const StudyLogForm = ({ onSubmit }: StudyLogFormProps) => {
     setIsLoading(true)
 
     try {
-      const result = await onSubmit(title, Number(minutes), date)
+      const result = await onSubmit(title, Number(minutes))
 
       if (result.success) {
         setTitle('')
         setMinutes('')
-        setDate('')
       } else {
         alert(result.error || 'エラーが発生しました')
       }
@@ -63,19 +61,6 @@ export const StudyLogForm = ({ onSubmit }: StudyLogFormProps) => {
               className="w-full px-4 py-3 border-2 border-gray-600 rounded-lg focus:outline-none focus:border-cyan-500 transition duration-200 bg-gray-800 text-white placeholder-gray-500 disabled:opacity-50"
             />
           </div>
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-gray-200 mb-2">
-            日付
-          </label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            required
-            disabled={isLoading}
-            className="w-full px-4 py-3 border-2 border-gray-600 rounded-lg focus:outline-none focus:border-cyan-500 transition duration-200 bg-gray-800 text-white disabled:opacity-50"
-          />
         </div>
         <button
           type="submit"

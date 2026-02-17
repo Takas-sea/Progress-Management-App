@@ -24,11 +24,17 @@ export const useStudyLogs = (session: Session | null) => {
         } : {},
       })
       
-      const responseData = await res.json()
+      const rawText = await res.text()
+      let responseData: any = {}
+      try {
+        responseData = rawText ? JSON.parse(rawText) : {}
+      } catch {
+        responseData = { raw: rawText }
+      }
       
       if (!res.ok) {
-        const errorMsg = responseData.details || responseData.error || 'データ取得に失敗しました'
-        console.error('Fetch logs error:', responseData)
+        const errorMsg = responseData.details || responseData.error || responseData.raw || 'データ取得に失敗しました'
+        console.error('Fetch logs error:', { status: res.status, statusText: res.statusText, responseData })
         throw new Error(errorMsg)
       }
       
@@ -51,9 +57,13 @@ export const useStudyLogs = (session: Session | null) => {
   }, [session, fetchLogs])
 
   // 作成
-  const createLog = useCallback(async (title: string, minutes: number, date: string) => {
+  const createLog = useCallback(async (title: string, minutes: number) => {
     try {
       const { data: { session: currentSession } } = await supabase.auth.getSession()
+      const now = new Date()
+      const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+        .toISOString()
+        .split('T')[0]
       
       const res = await fetch('/api/study-logs', {
         method: 'POST',
@@ -66,7 +76,7 @@ export const useStudyLogs = (session: Session | null) => {
         body: JSON.stringify({
           title,
           minutes: Number(minutes),
-          date,
+          date: localDate,
         }),
       })
 
@@ -79,6 +89,10 @@ export const useStudyLogs = (session: Session | null) => {
       }
 
       await fetchLogs()
+      
+      // マイルストーン更新イベントを発火
+      window.dispatchEvent(new CustomEvent('study-log-created'))
+      
       return { success: true }
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'エラーが発生しました'
@@ -109,6 +123,7 @@ export const useStudyLogs = (session: Session | null) => {
       }
 
       setLogs((prev) => prev.filter((log) => log.id !== id))
+      window.dispatchEvent(new CustomEvent('study-log-created'))
       return { success: true }
     } catch (error) {
       const msg = error instanceof Error ? error.message : '削除に失敗しました'
