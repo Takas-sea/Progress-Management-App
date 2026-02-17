@@ -125,7 +125,8 @@ export const useNotifications = () => {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data?.message || 'テスト通知に失敗しました');
+        const errorMsg = data?.error || data?.details || data?.message || 'テスト通知に失敗しました';
+        throw new Error(errorMsg);
       }
 
       return { success: true, data } as const;
