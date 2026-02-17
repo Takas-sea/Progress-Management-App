@@ -5,6 +5,7 @@ import { LoginPage } from '@/components/LoginPage'
 import { WeeklyChart } from '@/components/WeeklyChart'
 import { StudyLogForm } from '@/components/StudyLogForm'
 import { StudyLogsList } from '@/components/StudyLogsList'
+import { HabitSupportSection } from '@/components/HabitSupportSection'
 import { useAuth } from '@/hooks/useAuth'
 import { useStudyLogs } from '@/hooks/useStudyLogs'
 import { useWeeklyData } from '@/hooks/useWeeklyData'
@@ -39,6 +40,9 @@ export default function Home() {
         <WeeklyChart data={weeklyData} />
         <StudyLogForm onSubmit={createLog} />
         <StudyLogsList logs={logs} deletingId={deletingId} onDelete={deleteLog} />
+        <div className="mt-10">
+          <HabitSupportSection />
+        </div>
       </div>
     </div>
   )
