@@ -99,10 +99,9 @@ function CelebrationDialog({ milestone, onClose }: { milestone: MilestoneItem; o
 }
 
 export const MilestonesList = () => {
-  const { achieved, pending, stats, loading, error, reload, checkNewMilestones } = useMilestones();
+  const { achieved, pending, stats, loading, error, reload } = useMilestones();
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationMilestone, setCelebrationMilestone] = useState<MilestoneItem | null>(null);
-  const [checking, setChecking] = useState(false);
 
   const averageHours = useMemo(() => {
     if (stats.currentStreak <= 0) {
@@ -110,19 +109,6 @@ export const MilestonesList = () => {
     }
     return Math.round((stats.totalHours / stats.currentStreak) * 10) / 10;
   }, [stats]);
-
-  const handleCheck = async () => {
-    setChecking(true);
-    const result = await checkNewMilestones(stats.currentStreak, stats.totalHours);
-    if (result.success && Array.isArray(result.data?.newMilestones) && result.data.newMilestones.length > 0) {
-      const first = result.data.newMilestones[0];
-      const label = pending.find((item) => item.type === first)?.label || first;
-      setCelebrationMilestone({ type: first, label });
-      setShowCelebration(true);
-    }
-    await reload();
-    setChecking(false);
-  };
 
   if (loading) {
     return (
@@ -134,17 +120,8 @@ export const MilestonesList = () => {
 
   return (
     <div className="max-w-2xl mx-auto p-8 bg-gray-900 bg-opacity-70 backdrop-blur-sm rounded-2xl shadow-lg text-white">
-      <div className="flex items-center justify-between gap-2 mb-8">
-        <div className="flex items-center gap-2">
-          <h2 className="text-2xl font-bold">マイルストーン</h2>
-        </div>
-        <button
-          onClick={handleCheck}
-          disabled={checking}
-          className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-60"
-        >
-          {checking ? '更新中...' : '達成チェック'}
-        </button>
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold">マイルストーン</h2>
       </div>
 
       {error && (
